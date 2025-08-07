@@ -196,7 +196,7 @@ export default function AuthForm() {
   };
 
   const handleFusionAuthSignIn = async () => {
-    const provider = new OAuthProvider('ooidc.fusionauth-tacos-task-manager');
+    const provider = new OAuthProvider('oidc.fusionauth-tacos-task-manager');
     setLoading('fusionauth');
     try {
       // You would configure 'oidc.fusionauth-tacos-task-manager' in your Firebase console
