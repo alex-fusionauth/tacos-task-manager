@@ -98,8 +98,18 @@ export default function AuthForm() {
         const shouldCreatePasskey = confirm("Account created! Would you like to create a passkey for faster sign-ins next time?");
         if (shouldCreatePasskey) {
           try {
+             // This needs to be a secure identifier from your relying party.
             const rpId = window.location.hostname;
-            const passkeyCredential = await PasskeyAuthProvider.createCredential(rpId);
+            // The challenge should be a securely generated random value from your server.
+            // Using a simple client-side value for demonstration purposes ONLY.
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+
+            const passkeyCredential = await PasskeyAuthProvider.createCredential(rpId, challenge, {
+                userId: auth.currentUser.uid,
+                userName: auth.currentUser.email || "user",
+                userDisplayName: auth.currentUser.displayName || "User",
+            });
             await linkWithCredential(auth.currentUser, passkeyCredential);
             toast({ title: "Passkey created!", description: "You can now use this passkey to sign in." });
           } catch (passkeyError) {
@@ -198,7 +208,12 @@ export default function AuthForm() {
     setLoading(true);
     try {
       const rpId = window.location.hostname;
-      const userCredential = await signInWithPasskey(auth, rpId);
+      // The challenge should be a securely generated random value from your server.
+      // Using a simple client-side value for demonstration purposes ONLY.
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      
+      const userCredential = await signInWithPasskey(auth, rpId, challenge);
       const idToken = await userCredential.user.getIdToken();
       await handleAuthSuccess(idToken);
     } catch (error) {
@@ -348,3 +363,5 @@ declare global {
     recaptchaVerifier?: RecaptchaVerifier;
   }
 }
+
+    
