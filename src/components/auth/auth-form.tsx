@@ -13,7 +13,12 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   signInWithRedirect,
-  OAuthProvider
+  OAuthProvider,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  signInWithPasskey,
+  PasskeyAuthProvider,
+  linkWithCredential,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
@@ -67,10 +72,19 @@ export default function AuthForm() {
 
   const handleAuthError = (error: any) => {
     console.error(error);
+    let description = 'An unexpected error occurred.';
+    if (error.code === 'auth/invalid-credential') {
+      description = 'Invalid credentials. Please check your email and password.';
+    } else if (error.code === 'auth/email-already-in-use') {
+      description = 'This email is already in use. Please sign in or use a different email.';
+    } else if (error.code) {
+      description = error.code.replace('auth/', '').replace(/-/g, ' ');
+      description = description.charAt(0).toUpperCase() + description.slice(1);
+    }
     toast({
       variant: 'destructive',
       title: 'Authentication Error',
-      description: error.message || 'An unexpected error occurred.',
+      description: description,
     });
   };
 
@@ -79,6 +93,22 @@ export default function AuthForm() {
     try {
       const authFn = isSignUp ? createUserWithEmailAndPassword : signInWithEmailAndPassword;
       const userCredential = await authFn(auth, data.email, data.password);
+      
+      if (isSignUp && auth.currentUser) {
+        // After successful sign-up, prompt to create a passkey
+        const shouldCreatePasskey = confirm("Account created! Would you like to create a passkey for faster sign-ins next time?");
+        if (shouldCreatePasskey) {
+          try {
+            const rpId = window.location.hostname;
+            const passkeyCredential = await PasskeyAuthProvider.createCredential(rpId);
+            await linkWithCredential(auth.currentUser, passkeyCredential);
+            toast({ title: "Passkey created!", description: "You can now use this passkey to sign in." });
+          } catch (passkeyError) {
+             handleAuthError(passkeyError)
+          }
+        }
+      }
+      
       const idToken = await userCredential.user.getIdToken();
       await handleAuthSuccess(idToken);
     } catch (error) {
@@ -166,8 +196,17 @@ export default function AuthForm() {
   };
   
   const handlePasskeySignIn = async () => {
-    toast({ title: "Passkeys Coming Soon!", description: "This feature is under development." });
-    // In a real app, you would use signInWithPasskey from Firebase
+    setLoading(true);
+    try {
+      const rpId = window.location.hostname;
+      const userCredential = await signInWithPasskey(auth, rpId);
+      const idToken = await userCredential.user.getIdToken();
+      await handleAuthSuccess(idToken);
+    } catch (error) {
+      handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleFusionAuthSignIn = async () => {
