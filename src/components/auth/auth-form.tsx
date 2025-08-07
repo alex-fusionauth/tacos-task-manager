@@ -166,7 +166,8 @@ export default function AuthForm() {
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
       await handleAuthSuccess(idToken);
-    } catch (error) {
+    } catch (error)
+ {
       handleAuthError(error);
     } finally {
       setLoading(null);
