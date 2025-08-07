@@ -16,8 +16,6 @@ import {
   OAuthProvider,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  signInWithPasskey,
-  PasskeyAuthProvider,
   linkWithCredential,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -48,7 +46,7 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 type PhoneFormValues = z.infer<typeof phoneSchema>;
 
 export default function AuthForm() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [verificationId, setVerificationId] = useState<string | null>(null);
@@ -71,12 +69,14 @@ export default function AuthForm() {
   };
 
   const handleAuthError = (error: any) => {
-    console.error(error);
-    let description = 'An unexpected error occurred.';
+    console.error("Firebase Auth Error:", error);
+    let description = 'An unexpected error occurred. Please try again.';
     if (error.code === 'auth/invalid-credential') {
       description = 'Invalid credentials. Please check your email and password.';
     } else if (error.code === 'auth/email-already-in-use') {
       description = 'This email is already in use. Please sign in or use a different email.';
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      description = 'The sign-in popup was closed. This may be due to a configuration issue. Please ensure your domain is authorized in Firebase.';
     } else if (error.code) {
       description = error.code.replace('auth/', '').replace(/-/g, ' ');
       description = description.charAt(0).toUpperCase() + description.slice(1);
@@ -89,41 +89,17 @@ export default function AuthForm() {
   };
 
   const onEmailSubmit = async (data: EmailFormValues) => {
-    setLoading(true);
+    setLoading('email');
     try {
       const authFn = isSignUp ? createUserWithEmailAndPassword : signInWithEmailAndPassword;
       const userCredential = await authFn(auth, data.email, data.password);
-      
-      if (isSignUp && auth.currentUser) {
-        const shouldCreatePasskey = confirm("Account created! Would you like to create a passkey for faster sign-ins next time?");
-        if (shouldCreatePasskey) {
-          try {
-             // This needs to be a secure identifier from your relying party.
-            const rpId = window.location.hostname;
-            // The challenge should be a securely generated random value from your server.
-            // Using a simple client-side value for demonstration purposes ONLY.
-            const challenge = new Uint8Array(32);
-            window.crypto.getRandomValues(challenge);
-
-            const passkeyCredential = await PasskeyAuthProvider.createCredential(rpId, challenge, {
-                userId: auth.currentUser.uid,
-                userName: auth.currentUser.email || "user",
-                userDisplayName: auth.currentUser.displayName || "User",
-            });
-            await linkWithCredential(auth.currentUser, passkeyCredential);
-            toast({ title: "Passkey created!", description: "You can now use this passkey to sign in." });
-          } catch (passkeyError) {
-             handleAuthError(passkeyError)
-          }
-        }
-      }
       
       const idToken = await userCredential.user.getIdToken();
       await handleAuthSuccess(idToken);
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
@@ -140,7 +116,7 @@ export default function AuthForm() {
   }
 
   const onPhoneSubmit = async (data: PhoneFormValues) => {
-    setLoading(true);
+    setLoading('phone');
     if (phoneStep === 'number') {
       try {
         const appVerifier = setupRecaptcha();
@@ -151,7 +127,7 @@ export default function AuthForm() {
       } catch (error) {
         handleAuthError(error);
       } finally {
-        setLoading(false);
+        setLoading(null);
       }
     } else { // phoneStep === 'code'
       if (verificationId && data.code) {
@@ -168,31 +144,31 @@ export default function AuthForm() {
         } catch (error) {
           handleAuthError(error);
         } finally {
-          setLoading(false);
+          setLoading(null);
         }
       } else {
         toast({variant: 'destructive', title: "Missing code", description: "Please enter verification code."});
-        setLoading(false);
+        setLoading(null);
       }
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
+    setLoading('google');
     try {
+      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
       await handleAuthSuccess(idToken);
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
   const handleAnonymousSignIn = async () => {
-    setLoading(true);
+    setLoading('anonymous');
     try {
       const userCredential = await signInAnonymously(auth);
       const idToken = await userCredential.user.getIdToken();
@@ -200,37 +176,35 @@ export default function AuthForm() {
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
   
   const handlePasskeySignIn = async () => {
-    setLoading(true);
+    setLoading('passkey');
     try {
-      const rpId = window.location.hostname;
-      // The challenge should be a securely generated random value from your server.
-      // Using a simple client-side value for demonstration purposes ONLY.
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      
-      const userCredential = await signInWithPasskey(auth, rpId, challenge);
-      const idToken = await userCredential.user.getIdToken();
-      await handleAuthSuccess(idToken);
+      // Passkey sign-in logic will be implemented here in the future
+      toast({
+        title: 'Coming Soon!',
+        description: 'Passkey sign-in is not yet available.',
+      });
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
   
   const handleFusionAuthSignIn = async () => {
     const provider = new OAuthProvider('oidc.fusionauth');
+    setLoading('fusionauth');
     try {
         // You would configure 'oidc.fusionauth' in your Firebase console
-        const result = await signInWithRedirect(auth, provider);
+        await signInWithRedirect(auth, provider);
         // This will redirect, and you'd handle the result on page load.
     } catch (error) {
         handleAuthError(error);
+        setLoading(null);
     }
   }
 
@@ -269,13 +243,13 @@ export default function AuthForm() {
                 </div>
                  {emailForm.formState.errors.password && <p className="text-destructive text-xs">{emailForm.formState.errors.password.message}</p>}
               </div>
-              <Button type="submit" className="w-full font-bold" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full font-bold" disabled={!!loading}>
+                {loading === 'email' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSignUp ? 'Create Account' : 'Sign In'}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-                <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="font-semibold text-primary hover:underline">
+                <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="font-semibold text-primary hover:underline" disabled={!!loading}>
                   {isSignUp ? 'Sign In' : 'Sign Up'}
                 </button>
               </p>
@@ -299,13 +273,13 @@ export default function AuthForm() {
                   <Input id="code" type="text" placeholder="123456" {...phoneForm.register('code')} />
                 </div>
               )}
-              <Button type="submit" className="w-full font-bold" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full font-bold" disabled={!!loading}>
+                {loading === 'phone' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {phoneStep === 'number' ? 'Send Code' : 'Verify Code'}
               </Button>
                {phoneStep === 'code' && (
                 <p className="text-center text-sm">
-                  <button type="button" onClick={() => { setPhoneStep('number'); setVerificationId(null);}} className="font-semibold text-primary hover:underline">
+                  <button type="button" onClick={() => { setPhoneStep('number'); setVerificationId(null);}} className="font-semibold text-primary hover:underline" disabled={!!loading}>
                     Use a different number
                   </button>
                 </p>
@@ -324,17 +298,19 @@ export default function AuthForm() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Button variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
-            <GoogleLogo className="mr-2 h-4 w-4" /> Google
+          <Button variant="outline" onClick={handleGoogleSignIn} disabled={!!loading}>
+            {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleLogo className="mr-2 h-4 w-4" />}
+             Google
           </Button>
-          <Button variant="outline" onClick={handleAnonymousSignIn} disabled={loading}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <Button variant="outline" onClick={handleAnonymousSignIn} disabled={!!loading}>
+            {loading === 'anonymous' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>}
             Anonymous
           </Button>
         </div>
 
-        <Button variant="secondary" className="w-full mt-2" onClick={handlePasskeySignIn} disabled={loading}>
-          <KeyRound className="mr-2 h-4 w-4"/> Sign in with a passkey
+        <Button variant="secondary" className="w-full mt-2" onClick={handlePasskeySignIn} disabled={!!loading}>
+           {loading === 'passkey' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4"/>} 
+           Sign in with a passkey
         </Button>
         
         <div className="relative my-6">
@@ -346,8 +322,8 @@ export default function AuthForm() {
           </div>
         </div>
 
-        <Button onClick={handleFusionAuthSignIn} variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled={loading}>
-          <FusionAuthLogo className="mr-2 h-4 text-primary" />
+        <Button onClick={handleFusionAuthSignIn} variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled={!!loading}>
+           {loading === 'fusionauth' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FusionAuthLogo className="mr-2 h-4 text-primary" />}
           <span className="font-bold">FusionAuth</span>
           <ExternalLink className="ml-auto h-4 w-4 opacity-70"/>
         </Button>
@@ -363,5 +339,3 @@ declare global {
     recaptchaVerifier?: RecaptchaVerifier;
   }
 }
-
-    
