@@ -95,7 +95,6 @@ export default function AuthForm() {
       const userCredential = await authFn(auth, data.email, data.password);
       
       if (isSignUp && auth.currentUser) {
-        // After successful sign-up, prompt to create a passkey
         const shouldCreatePasskey = confirm("Account created! Would you like to create a passkey for faster sign-ins next time?");
         if (shouldCreatePasskey) {
           try {
