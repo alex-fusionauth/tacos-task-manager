@@ -76,7 +76,11 @@ export default function AuthForm() {
     } else if (error.code === 'auth/email-already-in-use') {
       description = 'This email is already in use. Please sign in or use a different email.';
     } else if (error.code === 'auth/popup-closed-by-user') {
-      description = 'The sign-in popup was closed. This may be due to a configuration issue. Please ensure your domain is authorized in Firebase.';
+      description = 'The sign-in popup was closed. Please ensure your domain is authorized in Firebase.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+        description = 'This sign-in method is not enabled. Please configure it in your Firebase console.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+        description = 'This domain is not authorized for OAuth operations. Please authorize it in your Firebase console.';
     } else if (error.code) {
       description = error.code.replace('auth/', '').replace(/-/g, ' ');
       description = description.charAt(0).toUpperCase() + description.slice(1);
@@ -173,7 +177,8 @@ export default function AuthForm() {
       const userCredential = await signInAnonymously(auth);
       const idToken = await userCredential.user.getIdToken();
       await handleAuthSuccess(idToken);
-    } catch (error) {
+    } catch (error)
+ {
       handleAuthError(error);
     } finally {
       setLoading(null);
@@ -199,9 +204,7 @@ export default function AuthForm() {
     const provider = new OAuthProvider('oidc.fusionauth');
     setLoading('fusionauth');
     try {
-        // You would configure 'oidc.fusionauth' in your Firebase console
         await signInWithRedirect(auth, provider);
-        // This will redirect, and you'd handle the result on page load.
     } catch (error) {
         handleAuthError(error);
         setLoading(null);
