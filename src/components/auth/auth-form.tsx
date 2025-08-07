@@ -51,7 +51,7 @@ export default function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [phoneStep, setPhoneStep] = useState<'number' | 'code'>('number');
-  
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -99,7 +99,7 @@ export default function AuthForm() {
     try {
       const authFn = isSignUp ? createUserWithEmailAndPassword : signInWithEmailAndPassword;
       const userCredential = await authFn(auth, data.email, data.password);
-      
+
       const idToken = await userCredential.user.getIdToken();
       await handleAuthSuccess(idToken);
     } catch (error) {
@@ -140,7 +140,7 @@ export default function AuthForm() {
         try {
           // This part requires a different logic path using confirmationResult.confirm(code)
           // Simplified for this example. Full implementation would store confirmationResult.
-          toast({ title: "Phone verification not fully implemented", description: "This is a demo."});
+          toast({ title: "Phone verification not fully implemented", description: "This is a demo." });
           console.log("Would attempt to verify with code:", data.code);
           // In a real app:
           // const credential = PhoneAuthProvider.credential(verificationId, data.code);
@@ -153,7 +153,7 @@ export default function AuthForm() {
           setLoading(null);
         }
       } else {
-        toast({variant: 'destructive', title: "Missing code", description: "Please enter verification code."});
+        toast({ variant: 'destructive', title: "Missing code", description: "Please enter verification code." });
         setLoading(null);
       }
     }
@@ -187,7 +187,7 @@ export default function AuthForm() {
       setLoading(null);
     }
   };
-  
+
   const handlePasskeySignIn = async () => {
     setLoading('passkey');
     try {
@@ -202,15 +202,17 @@ export default function AuthForm() {
       setLoading(null);
     }
   };
-  
+
   const handleFusionAuthSignIn = async () => {
     const provider = new OAuthProvider('oidc.fusionauth-tacos-task-manager');
     setLoading('fusionauth');
     try {
+        // You would configure 'oidc.fusionauth' in your Firebase console
         await signInWithRedirect(auth, provider);
+        // This will redirect, and you'd handle the result on page load.
     } catch (error) {
-        handleAuthError(error);
-        setLoading(null);
+      handleAuthError(error);
+      setLoading(null);
     }
   }
 
@@ -227,7 +229,7 @@ export default function AuthForm() {
             <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="phone">Phone</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="email">
             <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -241,13 +243,13 @@ export default function AuthForm() {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input id="password" type={showPassword ? 'text' : 'password'} {...emailForm.register('password')} className="pl-10 pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                 {emailForm.formState.errors.password && <p className="text-destructive text-xs">{emailForm.formState.errors.password.message}</p>}
+                {emailForm.formState.errors.password && <p className="text-destructive text-xs">{emailForm.formState.errors.password.message}</p>}
               </div>
               <Button type="submit" className="w-full font-bold" disabled={!!loading}>
                 {loading === 'email' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -263,13 +265,13 @@ export default function AuthForm() {
           </TabsContent>
 
           <TabsContent value="phone">
-             <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-4 mt-4">
+            <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-4 mt-4">
               {phoneStep === 'number' ? (
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" placeholder="+1 123-456-7890" {...phoneForm.register('phone')} className="pl-10"/>
+                    <Input id="phone" type="tel" placeholder="+1 123-456-7890" {...phoneForm.register('phone')} className="pl-10" />
                   </div>
                   {phoneForm.formState.errors.phone && <p className="text-destructive text-xs">{phoneForm.formState.errors.phone.message}</p>}
                 </div>
@@ -283,9 +285,9 @@ export default function AuthForm() {
                 {loading === 'phone' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {phoneStep === 'number' ? 'Send Code' : 'Verify Code'}
               </Button>
-               {phoneStep === 'code' && (
+              {phoneStep === 'code' && (
                 <p className="text-center text-sm">
-                  <button type="button" onClick={() => { setPhoneStep('number'); setVerificationId(null);}} className="font-semibold text-primary hover:underline" disabled={!!loading}>
+                  <button type="button" onClick={() => { setPhoneStep('number'); setVerificationId(null); }} className="font-semibold text-primary hover:underline" disabled={!!loading}>
                     Use a different number
                   </button>
                 </p>
@@ -306,7 +308,7 @@ export default function AuthForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Button variant="outline" onClick={handleGoogleSignIn} disabled={!!loading}>
             {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleLogo className="mr-2 h-4 w-4" />}
-             Google
+            Google
           </Button>
           <Button variant="outline" onClick={handleAnonymousSignIn} disabled={!!loading}>
             {loading === 'anonymous' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>}
@@ -315,10 +317,10 @@ export default function AuthForm() {
         </div>
 
         <Button variant="secondary" className="w-full mt-2" onClick={handlePasskeySignIn} disabled={!!loading}>
-           {loading === 'passkey' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4"/>} 
-           Sign in with a passkey
+          {loading === 'passkey' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+          Sign in with a passkey
         </Button>
-        
+
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
@@ -329,9 +331,9 @@ export default function AuthForm() {
         </div>
 
         <Button onClick={handleFusionAuthSignIn} variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" disabled={!!loading}>
-           {loading === 'fusionauth' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FusionAuthLogo className="mr-2 h-4 text-primary" />}
+          {loading === 'fusionauth' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FusionAuthLogo className="mr-2 h-4 text-primary" />}
           <span className="font-bold">FusionAuth</span>
-          <ExternalLink className="ml-auto h-4 w-4 opacity-70"/>
+          <ExternalLink className="ml-auto h-4 w-4 opacity-70" />
         </Button>
         <div id="recaptcha-container"></div>
       </CardContent>
