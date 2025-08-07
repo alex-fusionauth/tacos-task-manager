@@ -81,6 +81,8 @@ export default function AuthForm() {
         description = 'This sign-in method is not enabled. Please configure it in your Firebase console.';
     } else if (error.code === 'auth/unauthorized-domain') {
         description = 'This domain is not authorized for OAuth operations. Please authorize it in your Firebase console.';
+    } else if (error.code === 'auth/invalid-oidc-provider' || (error.customData?._tokenResponse?.error === 'idp.missing_oidc_config')) {
+      description = 'The OIDC provider is not configured correctly in your Firebase project. Please check the provider ID and settings in the Firebase console.';
     } else if (error.code) {
       description = error.code.replace('auth/', '').replace(/-/g, ' ');
       description = description.charAt(0).toUpperCase() + description.slice(1);
@@ -201,7 +203,7 @@ export default function AuthForm() {
   };
   
   const handleFusionAuthSignIn = async () => {
-    const provider = new OAuthProvider('oidc.fusionauth');
+    const provider = new OAuthProvider('oidc.fusionauth-tacos-task-manager');
     setLoading('fusionauth');
     try {
         await signInWithRedirect(auth, provider);
